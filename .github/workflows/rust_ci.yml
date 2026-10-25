@@ -1,0 +1,28 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/readme.md"
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  rust-checks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v16
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Build
+        run: nix develop --command cargo build --release
+
+      - name: Format check
+        run: nix develop --command cargo fmt --all -- --check --color always
+
+      - name: Clippy
+        run: nix develop --command cargo clippy --all-features --workspace -- -D warnings

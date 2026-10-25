@@ -1,0 +1,53 @@
+[package]
+edition      = "2024"
+name         = "sunrise-lamp"
+rust-version = "1.96"
+version      = "1.0.0"
+
+[[bin]]
+name = "sunrise-lamp"
+path = "./src/bin/main.rs"
+test = false
+
+[[test]]
+harness = false
+name    = "schedule"
+
+[lib]
+test = false
+
+[dependencies]
+esp-hal = { version = "~1.1.0", features = ["defmt", "esp32c3", "unstable"] }
+esp-rtos = { version = "0.3.0", features = ["defmt", "embassy", "esp-alloc", "esp-radio", "esp32c3"] }
+esp-bootloader-esp-idf = { version = "0.5.0", features = ["defmt", "esp32c3"] }
+esp-radio = { version = "0.18.0", features = ["defmt", "esp-alloc", "esp32c3", "unstable", "wifi"] }
+
+defmt = "1.0.1"
+esp-alloc = { version = "0.10.0", features = ["defmt"] }
+panic-rtt-target = { version = "0.2.0", features = ["defmt"] }
+rtt-target = { version = "0.6.2", features = ["defmt"] }
+
+embassy-net = { version = "0.9.1", features = ["defmt", "dhcpv4", "medium-ethernet", "udp", "dns"] }
+embassy-executor = { version = "0.10.0", features = ["defmt"] }
+embassy-sync = { version = "0.8.0", features = ["defmt"] }
+embassy-time = { version = "0.5.0", features = ["defmt"] }
+
+jiff = { version = "0.2", default-features = false, features = ["static"] }
+static_cell = { version = "2.1.1", features = ["nightly"] }
+sntpc = { version = "0.9", default-features = false }
+sntpc-net-embassy = { version = "0.9", default-features = false }
+
+[patch.crates-io]
+proc-macro-error2 = { git = "https://github.com/fgardt/proc-macro-error-2", branch = "fix/future-incompat" }
+
+[dev-dependencies]
+embedded-test = { version = "0.7.1", features = ["defmt", "embassy-010", "external-executor"] }
+
+[profile.dev]
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1
+debug = 2
+lto = "fat"
+opt-level = "s"
