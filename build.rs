@@ -1,24 +1,29 @@
 fn main() {
     let timezone = std::env::var("TIMEZONE").expect("TIMEZONE must be set");
-    let sunrise_minutes = parse_clock_minutes("SUNRISE");
-    let sunset_minutes = parse_clock_minutes("SUNSET");
+    let schedule_points = parse_schedule();
+    let update_interval_seconds = parse_update_interval_seconds();
     validate_wifi_transmit_power();
-
-    assert!(
-        sunrise_minutes < sunset_minutes,
-        "SUNRISE must be earlier than SUNSET"
-    );
 
     let output_directory = std::env::var("OUT_DIR").expect("OUT_DIR must be set");
     let configuration_path = std::path::Path::new(&output_directory).join("configuration.rs");
+    let schedule_point_constants = schedule_points
+        .iter()
+        .map(|(minutes, brightness_percent)| format!("({minutes}, {brightness_percent})"))
+        .collect::<Vec<_>>()
+        .join(", ");
     let configuration = format!(
         "pub const TIMEZONE: ::jiff::tz::TimeZone = ::jiff::tz::get!(\"{timezone}\");\n\
-         pub const SUNRISE_MINUTES: u16 = {sunrise_minutes};\n\
-         pub const SUNSET_MINUTES: u16 = {sunset_minutes};\n"
+         pub const SCHEDULE_POINTS: &[(u16, u8)] = &[{schedule_point_constants}];\n\
+         pub const UPDATE_INTERVAL_SECONDS: u64 = {update_interval_seconds};\n"
     );
     std::fs::write(configuration_path, configuration).expect("failed to write configuration");
 
-    for variable_name in ["TIMEZONE", "SUNRISE", "SUNSET", "WIFI_TRANSMIT_POWER"] {
+    for variable_name in [
+        "TIMEZONE",
+        "SCHEDULE",
+        "UPDATE_INTERVAL",
+        "WIFI_TRANSMIT_POWER",
+    ] {
         println!("cargo:rerun-if-env-changed={variable_name}");
     }
 
@@ -28,28 +33,88 @@ fn main() {
     println!("cargo:rustc-link-arg=-Tlinkall.x");
 }
 
-fn parse_clock_minutes(variable_name: &str) -> u16 {
-    let value =
-        std::env::var(variable_name).unwrap_or_else(|_| panic!("{variable_name} must be set"));
-    let Some((hour, minute)) = value.split_once(':') else {
-        panic!("{variable_name} must use HH:MM format");
+fn parse_schedule() -> Vec<(u16, u8)> {
+    let schedule = std::env::var("SCHEDULE").expect("SCHEDULE must be set");
+    let schedule_points = schedule
+        .split(',')
+        .map(parse_schedule_point)
+        .collect::<Vec<_>>();
+
+    assert!(
+        schedule_points.len() >= 2,
+        "SCHEDULE must contain at least two points"
+    );
+    assert!(schedule_points[0].0 == 0, "SCHEDULE must start with 00:00");
+
+    for schedule_point_pair in schedule_points.windows(2) {
+        let previous_minutes = schedule_point_pair[0].0;
+        let current_minutes = schedule_point_pair[1].0;
+        assert!(
+            previous_minutes < current_minutes,
+            "SCHEDULE times must be strictly increasing"
+        );
+    }
+
+    schedule_points
+}
+
+fn parse_schedule_point(schedule_point: &str) -> (u16, u8) {
+    let Some((clock_time, brightness_percent)) = schedule_point.split_once('=') else {
+        panic!("SCHEDULE points must use HH:MM=brightness format");
     };
 
     assert!(
-        hour.len() == 2 && minute.len() == 2 && value.len() == 5,
-        "{variable_name} must use HH:MM format"
+        !brightness_percent.contains('='),
+        "SCHEDULE points must use HH:MM=brightness format"
     );
 
-    let hour: u16 = hour
-        .parse()
-        .unwrap_or_else(|_| panic!("{variable_name} must use HH:MM format"));
-    let minute: u16 = minute
-        .parse()
-        .unwrap_or_else(|_| panic!("{variable_name} must use HH:MM format"));
+    let minutes = parse_clock_minutes(clock_time, "SCHEDULE times");
+    let brightness_percent = brightness_percent
+        .parse::<u8>()
+        .expect("SCHEDULE brightness must be an integer");
+
+    assert!(
+        brightness_percent <= 100,
+        "SCHEDULE brightness must be between 0 and 100"
+    );
+
+    (minutes, brightness_percent)
+}
+
+fn parse_update_interval_seconds() -> u64 {
+    let update_interval_seconds = std::env::var("UPDATE_INTERVAL")
+        .expect("UPDATE_INTERVAL must be set")
+        .parse::<u64>()
+        .expect("UPDATE_INTERVAL must be a whole number of seconds");
+
+    assert!(
+        (1..=60).contains(&update_interval_seconds),
+        "UPDATE_INTERVAL must be between 1 and 60 seconds"
+    );
+
+    update_interval_seconds
+}
+
+fn parse_clock_minutes(value: &str, value_description: &str) -> u16 {
+    let Some((hour, minute)) = value.split_once(':') else {
+        panic!("{value_description} must use HH:MM format");
+    };
+
+    assert!(
+        !minute.contains(':') && hour.len() == 2 && minute.len() == 2 && value.len() == 5,
+        "{value_description} must use HH:MM format"
+    );
+
+    let hour = hour
+        .parse::<u16>()
+        .unwrap_or_else(|_| panic!("{value_description} must use HH:MM format"));
+    let minute = minute
+        .parse::<u16>()
+        .unwrap_or_else(|_| panic!("{value_description} must use HH:MM format"));
 
     assert!(
         hour < 24 && minute < 60,
-        "{variable_name} must be a valid time"
+        "{value_description} must be a valid time"
     );
     hour * 60 + minute
 }

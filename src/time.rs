@@ -16,7 +16,7 @@ use sntpc::{NtpContext, NtpTimestampGenerator, get_time};
 use sntpc_net_embassy::UdpSocketWrapper;
 use static_cell::StaticCell;
 
-use crate::schedule::{LampState, TIMEZONE, determine_lamp_state};
+use crate::schedule::{TIMEZONE, determine_brightness_percentage};
 
 const NTP_SERVER: &str = "pool.ntp.org";
 const MINIMUM_VALID_EPOCH: u32 = 1_700_000_000;
@@ -65,14 +65,11 @@ fn log_local_time(event: &str) {
 
     let timestamp = Timestamp::new(i64::from(epoch_seconds), 0).unwrap();
     let local_time = timestamp.to_zoned(TIMEZONE);
-    let lamp_state = determine_lamp_state(local_time.hour() as u8, local_time.minute() as u8);
-    let lamp_state = match lamp_state {
-        LampState::Day => "day",
-        LampState::Night => "night",
-    };
+    let brightness_percent =
+        determine_brightness_percentage(local_time.hour() as u8, local_time.minute() as u8);
 
     info!(
-        "time: {} {} {=i16}-{=i8:02}-{=i8:02} {=i8:02}:{=i8:02} ({})",
+        "time: {} {} {=i16}-{=i8:02}-{=i8:02} {=i8:02}:{=i8:02} ({}%)",
         event,
         TIMEZONE.iana_name().unwrap(),
         local_time.year(),
@@ -80,7 +77,7 @@ fn log_local_time(event: &str) {
         local_time.day(),
         local_time.hour(),
         local_time.minute(),
-        lamp_state,
+        brightness_percent,
     );
 }
 

@@ -25,8 +25,8 @@
           SSID = "ssid";
           PASS = "pass";
           TIMEZONE = "Europe/Moscow";
-          SUNRISE = "08:00";
-          SUNSET = "23:00";
+          SCHEDULE = "00:00=0,08:00=0,09:00=100,17:00=100,19:00=40,23:00=40";
+          UPDATE_INTERVAL = "1";
           WIFI_TRANSMIT_POWER = "19";
           DEFMT_LOG = "info,embassy_net=warn";
 

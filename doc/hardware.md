@@ -6,4 +6,4 @@
 * Maximum current: 3200 mA
 
 ## Power supply
-* Model: Mean Well XLG-100-H-AB
+* Model: MeanWell XLG-100-H-AB

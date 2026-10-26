@@ -8,7 +8,7 @@ esp_bootloader_esp_idf::esp_app_desc!();
 mod tests {
     use defmt::assert_eq;
     use sunrise_lamp::schedule::{
-        LampState, SUNRISE_MINUTES, SUNSET_MINUTES, determine_lamp_state,
+        SCHEDULE_POINTS, UPDATE_INTERVAL_SECONDS, determine_brightness_percentage,
     };
 
     #[init]
@@ -22,24 +22,40 @@ mod tests {
     }
 
     #[test]
-    async fn sunrise_starts_daylight() {
-        let sunrise_hour = (SUNRISE_MINUTES / 60) as u8;
-        let sunrise_minute = (SUNRISE_MINUTES % 60) as u8;
+    async fn returns_the_configured_brightness_at_each_schedule_point() {
+        for (minutes, expected_brightness_percent) in SCHEDULE_POINTS {
+            let hour = (minutes / 60) as u8;
+            let minute = (minutes % 60) as u8;
 
-        assert_eq!(
-            determine_lamp_state(sunrise_hour, sunrise_minute),
-            LampState::Day
-        );
+            assert_eq!(
+                determine_brightness_percentage(hour, minute),
+                *expected_brightness_percent
+            );
+        }
     }
 
     #[test]
-    async fn sunset_starts_night() {
-        let sunset_hour = (SUNSET_MINUTES / 60) as u8;
-        let sunset_minute = (SUNSET_MINUTES % 60) as u8;
+    async fn holds_the_nighttime_brightness() {
+        assert_eq!(determine_brightness_percentage(4, 0), 0);
+    }
 
-        assert_eq!(
-            determine_lamp_state(sunset_hour, sunset_minute),
-            LampState::Night
-        );
+    #[test]
+    async fn interpolates_the_sunrise_brightness() {
+        assert_eq!(determine_brightness_percentage(8, 30), 50);
+    }
+
+    #[test]
+    async fn interpolates_the_evening_fade_brightness() {
+        assert_eq!(determine_brightness_percentage(18, 0), 70);
+    }
+
+    #[test]
+    async fn interpolates_the_sunset_brightness() {
+        assert_eq!(determine_brightness_percentage(23, 30), 20);
+    }
+
+    #[test]
+    async fn uses_the_configured_update_interval() {
+        assert_eq!(UPDATE_INTERVAL_SECONDS, 1);
     }
 }
