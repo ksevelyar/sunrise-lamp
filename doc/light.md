@@ -1,4 +1,8 @@
 # Light
+## Requirements
+* Lamp boots with light off.
+* Dimming is flicker-free.
+
 ## Dimming options
 ### Optocoupler-switched PWM
 An optocoupler transistor connects between DIM+ and DIM-. An ESP32 GPIO drives the optocoupler LED through a current-limiting resistor.
