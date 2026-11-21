@@ -6,7 +6,7 @@
 * The daily schedule controls perceived brightness in the configured timezone.
 * Brightness changes linearly between schedule points and updates every second.
 * The final schedule point transitions to the first point at midnight.
-* Gamma 2.2 converts perceived brightness to PWM duty cycle. Zero brightness requests zero duty cycle.
+* Gamma 2.2 converts perceived brightness to PWM duty cycle. At 0% brightness, the PWM duty cycle is 0%.
 * Dimming is flicker-free.
 
 ## User scenarios
