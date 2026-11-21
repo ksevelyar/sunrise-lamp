@@ -1,4 +1,22 @@
 fn main() {
+    write_configuration();
+
+    for variable_name in [
+        "TIMEZONE",
+        "SCHEDULE",
+        "UPDATE_INTERVAL",
+        "WIFI_TRANSMIT_POWER",
+    ] {
+        println!("cargo:rerun-if-env-changed={variable_name}");
+    }
+
+    linker_be_nice();
+    println!("cargo:rustc-link-arg-tests=-Tembedded-test.x");
+    println!("cargo:rustc-link-arg=-Tdefmt.x");
+    println!("cargo:rustc-link-arg=-Tlinkall.x");
+}
+
+fn write_configuration() {
     let timezone = std::env::var("TIMEZONE").expect("TIMEZONE must be set");
     let schedule_points = parse_schedule();
     let update_interval_seconds = parse_update_interval_seconds();
@@ -17,20 +35,6 @@ fn main() {
          pub const UPDATE_INTERVAL_SECONDS: u64 = {update_interval_seconds};\n"
     );
     std::fs::write(configuration_path, configuration).expect("failed to write configuration");
-
-    for variable_name in [
-        "TIMEZONE",
-        "SCHEDULE",
-        "UPDATE_INTERVAL",
-        "WIFI_TRANSMIT_POWER",
-    ] {
-        println!("cargo:rerun-if-env-changed={variable_name}");
-    }
-
-    linker_be_nice();
-    println!("cargo:rustc-link-arg-tests=-Tembedded-test.x");
-    println!("cargo:rustc-link-arg=-Tdefmt.x");
-    println!("cargo:rustc-link-arg=-Tlinkall.x");
 }
 
 fn parse_schedule() -> Vec<(u16, u8)> {

@@ -29,7 +29,7 @@ async fn main(spawner: Spawner) -> ! {
     esp_rtos::start(timer_group.timer0, software_interrupt.software_interrupt0);
     info!("sunrise-lamp: embassy initialized");
 
-    let (controller, stack, runner) = wifi::init(peripherals.WIFI).await;
+    let (controller, stack, runner) = wifi::init(peripherals.WIFI);
     spawner.spawn(wifi::connection(controller).unwrap());
     spawner.spawn(wifi::net_task(runner).unwrap());
 

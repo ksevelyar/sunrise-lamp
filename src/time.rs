@@ -14,7 +14,7 @@ use esp_hal::rtc_cntl::Rtc;
 use jiff::Timestamp;
 use sntpc::{NtpContext, NtpTimestampGenerator, get_time};
 use sntpc_net_embassy::UdpSocketWrapper;
-use static_cell::StaticCell;
+use static_cell::{ConstStaticCell, StaticCell};
 
 use crate::schedule::{TIMEZONE, determine_brightness_percentage};
 
@@ -34,7 +34,7 @@ pub fn epoch_seconds() -> Option<u32> {
     }
 
     let current_instant = Instant::now().as_secs();
-    let instant_base = INSTANT_BASE.load(Ordering::Relaxed) as u64;
+    let instant_base = u64::from(INSTANT_BASE.load(Ordering::Relaxed));
     let elapsed_seconds = current_instant.saturating_sub(instant_base) as u32;
     Some(epoch_base + elapsed_seconds)
 }
@@ -136,15 +136,14 @@ async fn sync_with_ntp(
     )
     .await;
 
-    match result {
-        Ok(time) => Some(
-            time.sec() as u64 * MICROSECONDS_PER_SECOND
-                + ((time.sec_fraction() as u64 * MICROSECONDS_PER_SECOND) >> 32),
-        ),
-        Err(_) => {
-            error!("time: NTP failed");
-            None
-        }
+    if let Ok(time) = result {
+        Some(
+            u64::from(time.sec()) * MICROSECONDS_PER_SECOND
+                + ((u64::from(time.sec_fraction()) * MICROSECONDS_PER_SECOND) >> 32),
+        )
+    } else {
+        error!("time: NTP failed");
+        None
     }
 }
 
@@ -153,13 +152,20 @@ pub async fn ntp_task(
     stack: Stack<'static>,
     rtc: &'static Mutex<CriticalSectionRawMutex, Rtc<'static>>,
 ) {
+    static RECEIVE_METADATA: ConstStaticCell<[PacketMetadata; 16]> =
+        ConstStaticCell::new([PacketMetadata::EMPTY; 16]);
+    static RECEIVE_BUFFER: ConstStaticCell<[u8; 4096]> = ConstStaticCell::new([0; 4096]);
+    static TRANSMIT_METADATA: ConstStaticCell<[PacketMetadata; 16]> =
+        ConstStaticCell::new([PacketMetadata::EMPTY; 16]);
+    static TRANSMIT_BUFFER: ConstStaticCell<[u8; 4096]> = ConstStaticCell::new([0; 4096]);
+
     seed_from_rtc(&*rtc.lock().await);
     stack.wait_config_up().await;
 
-    let mut receive_metadata = [PacketMetadata::EMPTY; 16];
-    let mut receive_buffer = [0; 4096];
-    let mut transmit_metadata = [PacketMetadata::EMPTY; 16];
-    let mut transmit_buffer = [0; 4096];
+    let receive_metadata = RECEIVE_METADATA.take();
+    let receive_buffer = RECEIVE_BUFFER.take();
+    let transmit_metadata = TRANSMIT_METADATA.take();
+    let transmit_buffer = TRANSMIT_BUFFER.take();
     let mut failed_attempts: u32 = 0;
 
     loop {
@@ -169,27 +175,23 @@ pub async fn ntp_task(
             sync_with_ntp(
                 current_time_microseconds,
                 &stack,
-                &mut receive_metadata,
-                &mut receive_buffer,
-                &mut transmit_metadata,
-                &mut transmit_buffer,
+                receive_metadata,
+                receive_buffer,
+                transmit_metadata,
+                transmit_buffer,
             ),
         )
         .await;
 
-        match result {
-            Ok(Some(epoch_microseconds)) => {
-                let epoch_seconds = (epoch_microseconds / MICROSECONDS_PER_SECOND) as u32;
-                rtc.lock().await.set_current_time_us(epoch_microseconds);
-                set_epoch_seconds(epoch_seconds);
-                log_local_time("synced");
-                break;
-            }
-            Ok(None) | Err(_) => {
-                failed_attempts += 1;
-                warn!("time: NTP sync attempt {} failed", failed_attempts);
-                Timer::after(Duration::from_secs(10)).await;
-            }
+        if let Ok(Some(epoch_microseconds)) = result {
+            let epoch_seconds = (epoch_microseconds / MICROSECONDS_PER_SECOND) as u32;
+            rtc.lock().await.set_current_time_us(epoch_microseconds);
+            set_epoch_seconds(epoch_seconds);
+            log_local_time("synced");
+            break;
         }
+        failed_attempts += 1;
+        warn!("time: NTP sync attempt {} failed", failed_attempts);
+        Timer::after(Duration::from_secs(10)).await;
     }
 }
