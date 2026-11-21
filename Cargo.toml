@@ -37,9 +37,6 @@ static_cell = { version = "2.1.1", features = ["nightly"] }
 sntpc = { version = "0.9", default-features = false }
 sntpc-net-embassy = { version = "0.9", default-features = false }
 
-[patch.crates-io]
-proc-macro-error2 = { git = "https://github.com/fgardt/proc-macro-error-2", branch = "fix/future-incompat" }
-
 [dev-dependencies]
 embedded-test = { version = "0.7.1", features = ["defmt", "embassy-010", "external-executor"] }
 
