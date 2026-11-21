@@ -1,2 +1,2 @@
-* don't use #[allow] to bypass clippy
-* test result with cargo build
+* pick rules from doc/boundaries.md
+* don't use allow to bypass clippy
