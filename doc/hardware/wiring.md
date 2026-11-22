@@ -1,28 +1,58 @@
 # Wiring
-## Mains
-* One mains cable enters a fused and switched inlet.
-* Split live and neutral after the inlet to power the XLG-100-H-AB LED driver and the isolated 12 V AC/DC supply in parallel.
-* Connect protective earth to the XLG protective-earth terminal and to a conductive enclosure.
-* Enclose mains terminals, provide cable strain relief, and keep mains wiring separate from low-voltage wiring.
+
+## Inlet
+```
+Input live - mains cable live
+Input neutral - mains cable neutral
+Output live - XLG live input and 12 V supply live input
+Output neutral - XLG neutral input and 12 V supply neutral input
+```
+
+## XLG-100-H-AB LED driver
+```
+Live input - inlet output live
+Neutral input - inlet output neutral
+V+ - LED panel positive
+V- - LED panel negative
+DIM+ - PW2VB01 Vo
+DIM- - PW2VB01 output GND
+```
 
 ## LED panel
-* Connect XLG `V+` to LED panel positive.
-* Connect XLG `V-` to LED panel negative.
-* Do not connect XLG `V-` to any controller or dimming connection.
+```
+Positive - XLG V+
+Negative - XLG V-
+```
 
-## 12 V supply
-* Connect 12 V positive to PW2VB01 `Vin` and to the 12 V input of the 5 V buck converter.
-* Connect 12 V negative to PW2VB01 input and PWM `GND` and to the buck converter input negative.
+## 12 V AC/DC supply
+```
+Live input - inlet output live
+Neutral input - inlet output neutral
+12 V positive output - PW2VB01 Vin and buck converter input positive
+12 V negative output - PW2VB01 input GND, PW2VB01 PWM GND and buck converter input negative
+```
+
+## 5 V buck converter
+```
+Input positive - 12 V supply positive output
+Input negative - 12 V supply negative output
+Output 5 V - ESP32-C3 SuperMini 5V
+Output negative - ESP32-C3 SuperMini GND
+```
 
 ## ESP32-C3 SuperMini
-* Connect the buck converter 5 V output to the SuperMini `5V` pin.
-* Connect the buck converter output negative to a SuperMini `GND` pin.
-* Connect SuperMini `GPIO1` to PW2VB01 `PWM`.
-* Configure `GPIO1` as a 1 kHz PWM output.
-* Do not use boot-strapping pins `GPIO2`, `GPIO8`, or `GPIO9` for dimming.
+```
+5V - buck converter output 5 V
+GND - buck converter output negative
+GPIO1 - PW2VB01 PWM
+```
 
-## Dimming control
-* Configure the PW2VB01 for 0 to 10 V output.
-* Connect PW2VB01 `Vo` to XLG `DIM+`.
-* Connect PW2VB01 output `GND` to XLG `DIM-`.
-* Keep the PW2VB01 output connection separate from XLG LED `V+` and `V-`.
+## PW2VB01
+```
+Vin - 12 V supply positive output
+Input GND - 12 V supply negative output
+PWM GND - 12 V supply negative output
+PWM - ESP32-C3 SuperMini GPIO1
+Vo - XLG DIM+
+Output GND - XLG DIM-
+```
