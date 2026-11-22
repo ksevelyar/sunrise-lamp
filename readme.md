@@ -5,7 +5,11 @@ A sunrise lamp to fight [SAD](https://en.wikipedia.org/wiki/Seasonal_affective_d
 * [Boundaries](doc/boundaries.md)
 * [Light schedule](doc/features/light-schedule.md)
 * [Time sync](doc/features/time-sync.md)
-* [Wiring](doc/hardware/wiring.md)
+* [Schematic](doc/hardware/schematic.md)
+
+## Schematic
+
+![Schematic](doc/hardware/schematic.svg)
 
 ## Configuration
 Set these build-time environment variables:

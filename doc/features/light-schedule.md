@@ -64,4 +64,4 @@
 * ESP32-C3 `GPIO1` supplies PWM to the PW2VB01 converter configured for 0 to 10 V output.
 * The converter supplies a steady analog dimming signal to the LED driver.
 * A gamma 2.2 lookup table converts perceived brightness to PWM duty cycle. Measured lamp values can replace the initial table.
-* [Wiring](../hardware/wiring.md) and [power supply](../hardware/psu.md) describe the dimming connections.
+* [Schematic](../hardware/schematic.md) and [power supply](../hardware/psu.md) describe the dimming connections.
